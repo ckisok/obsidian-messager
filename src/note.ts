@@ -45,9 +45,6 @@ export default class Note {
                 if (this.judgeImageMessage(content)) {
                     content = await this.saveImage(this.plugin.settings, content);
                 }
-                // process prefix/suffix if setting exists
-                content = this.dealPrefixOrSuffix(content, msg["createdAt"]);
-
                 let title = msg["title"];
                 if (title != null && title.length > 1) {
                     title = this.filterTitle(title) + ".md";
@@ -66,6 +63,9 @@ export default class Note {
         if (title == null || title.length < 1) {
 		    title = this.getTitle(setting, note, created);
         }
+
+        // process prefix/suffix if setting exists
+        note = this.dealPrefixOrSuffix(note, created);
 
         let savedFolder = setting.savedFolder ?? "/"
         let fullpath = ""
@@ -212,7 +212,7 @@ export default class Note {
     // filter title special char 
     filterTitle(title: string): string {
         if (title.length < 1) { return "" }
-        const validChars = title.match(/[a-zA-Z0-9\u4e00-\u9fa5+-_.@]+/g);
+        const validChars = title.match(/[a-zA-Z0-9\u4e00-\u9fa5+-_.@｜]+/g);
         if (!validChars) {
             return 'undefined';
         }
