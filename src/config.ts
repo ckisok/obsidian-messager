@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
+import { App, PluginSettingTab, Setting, Notice, TFile } from 'obsidian';
 import Helper, { AppendPluginSettings } from "./helper";
 import Lang from './lang';
 import AppendPlugin from './main';
@@ -180,6 +180,25 @@ export class AppendSettingTab extends PluginSettingTab {
 			});
 		});
 
+        // choose template
+        const templates = this.helper.getAllTemplates(this.app)
+		new Setting(containerEl)
+		.setName(this.lang.CHOOSE_TEMPLATE)
+		.setDesc(this.lang.CHOOSE_TEMPLATE_DESC)
+		.addDropdown(dropdown => {
+			dropdown.addOption("", "")
+            for (const k in templates) {
+                let option = templates[k]
+			    dropdown.addOption(option.name, option.name)
+            }
+			dropdown.setValue(this.plugin.settings.templateName);
+
+			dropdown.onChange(async (value) => {
+				this.plugin.settings.templateName = value
+				await this.plugin.saveSettings();
+			});
+		});
+
 		// verify apiKey button
 		new Setting(containerEl)
 		.setName(this.lang.NAME_VERIFYBTN)
@@ -214,6 +233,7 @@ export class AppendSettingTab extends PluginSettingTab {
         usage.appendText(this.lang.SUFFIX_PREFIX_USAGE);
         usage.style.fontSize = '12px';  
         usage.style.color = '#888888';  
+
 
         containerEl.createEl('hr');
 

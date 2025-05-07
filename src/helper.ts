@@ -1,4 +1,4 @@
-import { App, Plugin, TFolder, TAbstractFile } from 'obsidian';
+import { App, Plugin, TFolder, TAbstractFile, TFile } from 'obsidian';
 
 export interface AppendPluginSettings {
 	apikey: string;
@@ -10,6 +10,7 @@ export interface AppendPluginSettings {
     contentPrefix: string; // add prefix for each content 
     contentSuffix: string; // add suffix for each content 
     insertPosition: string; // insert_before / insert_after 
+    templateName: string; // use template's name 
 }
 
 export default class Helper {
@@ -102,4 +103,20 @@ export default class Helper {
     now(): number {
         return Math.floor(Date.now() / 1000);
     }
+
+	// get all available templates 
+	getAllTemplates(app: App): TFile[] {
+    	// choose template 列出所有模板
+		const templatePlugin = (app as any).internalPlugins.plugins.templates;
+        if (templatePlugin && templatePlugin.instance) {
+            // 获取模板文件夹路径
+            const templateFolder = templatePlugin.instance.options.folder;
+            // 获取该文件夹下所有文件
+            const t = app.vault.getFiles().filter(file => 
+                file.path.startsWith(templateFolder + "/")
+            );
+			return t
+        }
+        return []
+	}
 }

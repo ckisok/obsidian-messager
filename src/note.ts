@@ -43,8 +43,11 @@ export default class Note {
                 let content = msg["content"];
                 // if msg is a link of image, save it to local.
                 if (this.judgeImageMessage(content)) {
-                    content = await this.saveImage(this.plugin.settings, content);
+                    content = await this.parseImageOnly(content);
                 }
+                // save email's img to local 
+                content = await this.parseEmailContent(content)
+
                 let title = msg["title"];
                 if (title != null && title.length > 1) {
                     title = this.filterTitle(title) + ".md";
@@ -64,6 +67,7 @@ export default class Note {
 		    title = this.getTitle(setting, note, created);
         }
 
+        console.log("准备addNote", title)
         // process prefix/suffix if setting exists
         note = this.dealPrefixOrSuffix(note, created);
 
@@ -105,12 +109,28 @@ export default class Note {
 					}
 				} else {
 					// file not exist, just add it 
-					await this.app.vault.create(fullpath, note);
+					let newFile = await this.app.vault.create(fullpath, note);
+                    // open the file 
+                    const leaf = this.app.workspace.getLeaf(true);
+                    await leaf.openFile(newFile as TFile);
+                    // insert Template if configured
+                    if (this.plugin.settings.templateName != null && 
+                        this.plugin.settings.templateName.length > 1) {
+                        await this.insertTemplate()
+                    }
                     return
 				}
 			} else {
 			    // new file mode
-				await this.app.vault.create(fullpath, note);
+				let newFile = await this.app.vault.create(fullpath, note);
+                // open the file
+                const leaf = this.app.workspace.getLeaf(true);
+                await leaf.openFile(newFile as TFile);
+                // insert Template if configured
+                if (this.plugin.settings.templateName != null && 
+                    this.plugin.settings.templateName.length > 1) {
+                    await this.insertTemplate()
+                }
 			}
         
 			this.helper.addStatus("new message to note:"+fullpath, this.plugin);
@@ -235,7 +255,7 @@ export default class Note {
 		}
 		let url = match[1]
         // wechat url 
-        if (url.indexOf("mmbiz.qpic.cn") > 0) {
+        if (url.indexOf("qpic.cn") > 0) {
             return true
         }
 
@@ -252,39 +272,53 @@ export default class Note {
         return false
     }
 
-    // save image to local 
+    // parse imageOnly message and save image to local 
     // @return localfile note, eg:  ![[somgpic.png]]
-    async saveImage(setting: AppendPluginSettings, msg: string): Promise<string> {
+    async parseImageOnly(msg: string): Promise<string> {
   		const urlRegex = /\]\((https?:\/\/[^\s)]+)\)/;
   		const match = msg.match(urlRegex);
 		if (match == null || match.length < 2) {
             return msg
 		}
 		let url = match[1]
+        let localPath = await this.saveUrlToLocal(url)
+        if (localPath != "") {
+            let localMsg = "![[" + localPath + "|400]]";
+            return localMsg
+        }
+
+        return ""
+    }
+
+    // save image's url to local
+    // return local path, eg: localFolder/media/somgPic.jpg
+    async saveUrlToLocal(url: string): Promise<string> {
+        let settings = this.plugin.settings
         let resp = await requestUrl(url) 
         if (resp.status != 200 || resp.arrayBuffer.byteLength < 1) {
-            return msg
+            console.error("saveUrlToLocal err,url:", url, "resp err:", resp)
+            return ""
         }
         let imgData = new Uint8Array(resp.arrayBuffer)
-        let imgInfo = this.checkImageExistence(await this.getImageSavedPath(setting, url))
+        let imgInfo = this.checkImageExistence(await this.getImageSavedPath(settings, url))
         let imgPath = imgInfo[0] 
         let imgName = imgInfo[1]
         if (imgPath == null || imgPath == "" || imgName == null || imgName == "") {
-            console.error("save image to local err, imgPath or imgName empty:", imgPath, imgName)
-            return msg
+            console.error("saveUrlToLocal err, imgPath or imgName empty:", imgPath, imgName)
+            return ""
         }
         try {
             const file = await this.app.vault.createBinary(imgPath, imgData);
             if (file == null || typeof file.basename == "undefined" || file.basename.length < 1) {
-                console.error("vault.createBinary err,file not saved.")
-                return msg
+                console.error("saveUrlToLocal vault.createBinary err,file not saved.")
+                return ""
             }
             // save success, return local file link 
-            let localMsg = "![[" + imgPath + "|400]]";
-            return localMsg
+            //let localMsg = "![[" + imgPath + "|400]]";
+            return imgPath
         } catch (err) {
-            console.error("saveImage createBinary err:", err)
-            return msg
+            console.error("saveUrlToLocal createBinary err:", err)
+            return ""
         }
     }
     
@@ -298,7 +332,8 @@ export default class Note {
         if (urlPath == null || urlPath.length < 1) {
             fileName = this.helper.now().toString() + ".jpg"
         } else {
-            fileName = urlPath.substring(urlPath.lastIndexOf("/") + 1)
+            fileName = 
+                this.helper.now().toString() + urlPath.substring(urlPath.lastIndexOf("/") + 1)
         }
         if (fileName.indexOf(".") < 0) {
             fileName = fileName + ".jpg"
@@ -364,6 +399,89 @@ export default class Note {
             return
         }
         // not exist,need tobe created
-        let tf = await this.app.vault.createFolder(folder)
+        await this.app.vault.createFolder(folder)
     }
+
+    // insert template to current opening file
+    async insertTemplate() {
+        let configTmpName = this.plugin.settings.templateName
+        if (configTmpName.length < 1) {
+            console.error("no configTmpName err.")
+            return
+        }
+        const templatePlugin = (this.app as any).internalPlugins?.plugins?.templates?.instance;
+        if (!templatePlugin) {
+            console.log("template plugin not available.")
+            return;
+        }
+
+        const templates = this.helper.getAllTemplates(this.app)
+        let tmpFile: TFile | null = null;
+        for (let k in templates) {
+            if (templates[k].name == configTmpName) {
+                tmpFile = templates[k]
+            }
+        }
+        
+        if (tmpFile == null || tmpFile.path == null || tmpFile.path.length < 1) {
+            console.error("parse template err, template may not exist,path empty.")
+            return
+        }
+
+        const templateContent = await this.app.vault.read(tmpFile)
+        if (templateContent.length < 1) {
+            console.error("template content empty.", tmpFile.path)
+            return
+        }
+        // render template content into file
+        await templatePlugin.insertTemplate(tmpFile);
+    }
+    
+    // parse email's content, save embended file && attach file to local
+    async parseEmailContent(content: string): Promise<string> {
+        let emailAttachApi    = "https://wechatobsidian.com/api/email_attach"
+        let settings          = this.plugin.settings
+        let apiKey            = settings.apikey
+        let matches: string[] = []
+        let match
+        // process images in <img> 
+        const regex = /<img[^>]+src\s*=\s*['"]?([^'"\s>]+)['"]?[^>]*>/gi;
+        while ((match = regex.exec(content)) !== null) {
+            matches.push(match[1]);
+        }
+        for (let k in matches) {
+            let url = matches[k] 
+            console.log("准备下载一个url:", url)
+            if (url.substring(0, 8) == "https://") {
+                // save image to local and replace the note content
+                let localPath = await this.saveUrlToLocal(url)
+                if (localPath.length > 0) {
+                    console.log("替换url为本地", url, localPath)
+                    content = content.replace(url, localPath) 
+                }
+            } else if (url.substring(0, 4) == "cid:") {
+                let filename = url.substring(4)
+                // only with filename(Email embended image), find in server 
+                let req = emailAttachApi + "?apikey=" + apiKey + "&filename=" + filename
+                let localPath = await this.saveUrlToLocal(req)
+                console.log("下载了一个embended:", req, localPath)
+                if (localPath.length > 0) {
+                    console.log("embended", req, localPath)
+                    content = content.replace(url, localPath) 
+                }
+            }
+        }
+
+        return content
+
+        // process attachments 
+        /*
+        const attRegex = /!\[\[#Attachment#([^\]]+)\]\]/g;
+        while ((match = regex.exec(content)) !== null) {
+            matches.push(match[1]);
+        }
+        */
+    }
+
+
 }

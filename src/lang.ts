@@ -52,6 +52,10 @@ Supports date variables (must be enclosed in curly braces), prefix/suffix suppor
 	ERROR: string       = "Messager error:";
 	API_ERROR: string   = "Messager server response error:";
 	API_USERERR: string = "API key not found, user not exist.";
+    
+    CHOOSE_TEMPLATE = "Choose Template(Only first message will use)"
+    CHOOSE_TEMPLATE_DESC = "Only first message of new file will use"
+
     LATEST_UPDATE: string = `
 UpdateNotes:
     (v1.1.2@25-01-20): Fix bugs.
@@ -118,6 +122,9 @@ UpdateNotes:
 		this.ERROR       = "Messager 错误:";
 		this.API_ERROR   = "Messager 服务器错误:";
 		this.API_USERERR = "用户不存在。";
+   
+        this.CHOOSE_TEMPLATE = "选择要使用的模板"
+        this.CHOOSE_TEMPLATE_DESC = "同一个文件只有首条信息会使用模板"
 
         this.LATEST_UPDATE = `
 更新记录：

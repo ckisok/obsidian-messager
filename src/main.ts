@@ -9,7 +9,15 @@ export default class AppendPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.addSettingTab(new AppendSettingTab(this.app, this));
-		this.intervalRefresh();
+
+        if (process.env.NODE_ENV == "development") {
+		    this.intervalRefresh();
+        } else {
+            // wait for other plugins like sync plugin
+            setTimeout(() => {
+                this.intervalRefresh();
+            }, 30000)
+        }
 	}
 
 	onunload() {
@@ -29,7 +37,8 @@ export default class AppendPlugin extends Plugin {
                 fixedTitle: "",
                 insertPosition: "",
                 contentSuffix: "",
-                contentPrefix: ""
+                contentPrefix: "",
+                templateName: ""
 			}
 			this.settings = defaultConf;
 		}
