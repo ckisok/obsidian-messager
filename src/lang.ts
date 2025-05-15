@@ -58,10 +58,9 @@ Supports date variables (must be enclosed in curly braces), prefix/suffix suppor
 
     LATEST_UPDATE: string = `
 UpdateNotes:
+    (v1.1.4@25-05-15): Save Email's attach
     (v1.1.3@25-05-13): Support template
     (v1.1.2@25-01-20): Fix bugs.
-    (v1.1.0@24-09-09): Fix bugs.
-    (v1.0.9@24-09-07): Support date variables for fixed title.
 `
 	constructor() {
         let lang = window.localStorage.getItem('language');
@@ -129,9 +128,9 @@ UpdateNotes:
 
         this.LATEST_UPDATE = `
 更新记录：
+(v1.1.4@25-05-15): Email附件内容支持下载
 (v1.1.3@25-05-13): 支持模板消息；支持Email内嵌图片下载
 (v1.1.2@25-01-20): Fix bugs 设置标题的Bug 
-(v1.1.0@24-09-09): Fix bugs.
 `
 	}
 }

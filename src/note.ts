@@ -439,10 +439,10 @@ export default class Note {
     
     // parse email's content, save embended file && attach file to local
     async parseEmailContent(content: string): Promise<string> {
-        let emailAttachApi    = "https://wechatobsidian.com/api/email_attach"
-        let settings          = this.plugin.settings
-        let apiKey            = settings.apikey
-        let matches: string[] = []
+        let emailAttachApi    = "https://wechatobsidian.com/api/email_attach";
+        let settings          = this.plugin.settings;
+        let apiKey            = settings.apikey;
+        let matches: string[] = [];
         let match
         // process images in <img> 
         const regex = /<img[^>]+src\s*=\s*['"]?([^'"\s>]+)['"]?[^>]*>/gi;
@@ -450,37 +450,43 @@ export default class Note {
             matches.push(match[1]);
         }
         for (let k in matches) {
-            let url = matches[k] 
-            console.log("准备下载一个url:", url)
+            let url = matches[k]; 
             if (url.substring(0, 8) == "https://") {
                 // save image to local and replace the note content
-                let localPath = await this.saveUrlToLocal(url)
+                let localPath = await this.saveUrlToLocal(url);
                 if (localPath.length > 0) {
-                    console.log("替换url为本地", url, localPath)
-                    content = content.replace(url, localPath) 
+                    content = content.replace(url, localPath);
                 }
             } else if (url.substring(0, 4) == "cid:") {
-                let filename = url.substring(4)
+                let filename = url.substring(4);
                 // only with filename(Email embended image), find in server 
-                let req = emailAttachApi + "?apikey=" + apiKey + "&filename=" + filename
-                let localPath = await this.saveUrlToLocal(req)
-                console.log("下载了一个embended:", req, localPath)
+                let req = emailAttachApi + "?apikey=" + apiKey + "&filename=" + filename;
+                let localPath = await this.saveUrlToLocal(req);
                 if (localPath.length > 0) {
-                    console.log("embended", req, localPath)
-                    content = content.replace(url, localPath) 
+                    content = content.replace(url, localPath); 
                 }
             }
         }
 
-        return content
-
         // process attachments 
-        /*
         const attRegex = /!\[\[#Attachment#([^\]]+)\]\]/g;
-        while ((match = regex.exec(content)) !== null) {
-            matches.push(match[1]);
+        while ((match = attRegex.exec(content)) !== null) {
+            if (match.length != 2) {
+                console.error("attachment regex match result not 2");
+                continue;
+            }
+            // download attachment
+            let req = emailAttachApi + "?apikey=" + apiKey + "&filename=" + match[1];
+            let localPath = await this.saveUrlToLocal(req);
+            if (localPath.length < 1) {
+                console.error("save attachment:"+match[1]+"-failed.."+req);
+                continue;
+            }
+            let replaced = "![[" + localPath + "|400]]";
+            content = content.replace(match[0], replaced);
         }
-        */
+        
+        return content
     }
 
 
