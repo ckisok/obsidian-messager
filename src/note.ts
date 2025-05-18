@@ -439,16 +439,18 @@ export default class Note {
     
     // parse email's content, save embended file && attach file to local
     async parseEmailContent(content: string): Promise<string> {
+        console.log("开始解析email", content)
         let emailAttachApi    = "https://wechatobsidian.com/api/email_attach";
         let settings          = this.plugin.settings;
         let apiKey            = settings.apikey;
         let matches: string[] = [];
         let match
-        // process images in <img> 
-        const regex = /<img[^>]+src\s*=\s*['"]?([^'"\s>]+)['"]?[^>]*>/gi;
+        // process images in <img src="cid:xxx.jpg"> 
+        const regex = /<img[^>]+src=\"(.*?)\"/gi;
         while ((match = regex.exec(content)) !== null) {
             matches.push(match[1]);
         }
+        console.log("匹配了matches",matches)
         for (let k in matches) {
             let url = matches[k]; 
             if (url.substring(0, 8) == "https://") {
