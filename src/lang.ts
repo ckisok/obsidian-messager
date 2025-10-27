@@ -33,9 +33,9 @@ export default class Lang {
     SUFFIX_PREFIX_USAGE: string = `
 Prefix/Suffix/Fixed title configuration usage:
 Supports date variables (must be enclosed in curly braces), prefix/suffix supports using \\n for new lines
-{y-m-d h:i:s W w} corresponds to year-month-day hour:minute:second Sunday Sun
+{y-m-d h:i:s W w n} corresponds to year-month-day hour:minute:second Sunday Sun WeekNum
   For example:
-  "date@{y-m-d-W}"
+  "date@{y-m-d-W-n}"
   "{ymd@h:i w} \\n"
   "{y-m-d h:i:s} \\n --- \\n"
 `
@@ -103,7 +103,7 @@ UpdateNotes:
         this.SUFFIX_PREFIX_USAGE = 
 `前缀/后缀/固定文件名 时间戳变量用法说明： 
 日期变量(需要用花括号括起来)，前缀/后缀支持用 \\n 换行(文件名不支持)
-{y-m-d h:i:s W w} 对应 年-月-日 时:分:秒 星期六(大写W) 周六(小写w)
+{y-m-d h:i:s W w n} 对应 年-月-日 时:分:秒 星期六(大写W) 周六(小写w) 第几周(n)
   例如: 
   "日期@{y-m-d-W}"
   "{ymd@h:i_w} \\n"
@@ -128,6 +128,7 @@ UpdateNotes:
 
         this.LATEST_UPDATE = `
 更新记录：
+(v1.1.6@25-10-27): 标题增加 n 支持替换「第几周」
 (v1.1.5@25-05-15): Fix Email多个附件内容下载
 (v1.1.4@25-05-15): Email附件内容支持下载
 (v1.1.3@25-05-13): 支持模板消息；支持Email内嵌图片下载

@@ -47,7 +47,7 @@ export default class Helper {
 		}, 3000);
 	}
 
-    // format data string 
+    // format data string
     // lang: cn / en  created: unix timestamp in seconds
     formatDate(format: string, lang: string = "cn", created: number = 0): string {
         let now: Date
@@ -64,6 +64,7 @@ export default class Helper {
             'i': now.getMinutes(),          // 分钟
             's': now.getSeconds(),          // 秒
             'w': now.getDay(),              // 星期，0是星期日
+            'n': this.getWeekNumber(now),   // 第几周
         };
 
         const weekdays = {
@@ -74,12 +75,15 @@ export default class Helper {
         // 辅助函数，确保所有单数字的时间值以两位数字形式显示
         const pad = (value: number): string => value.toString().padStart(2, '0');
         //return format.replace(/y|m|d|h|i|s/g, match => pad(tokens[match]));
-        return format.replace(/y|m|d|h|i|s|w|W/g, match => {
+        return format.replace(/y|m|d|h|i|s|w|W|n/g, match => {
             if (match === 'w') {
                 return lang === 'cn' ? "周"+weekdays.cn[tokens.w as number] : weekdays.en[tokens.w as number].slice(0, 3);
             }
             if (match === 'W') {
                 return lang === 'cn' ? `星期${weekdays.cn[tokens.w as number]}` : weekdays.en[tokens.w as number];
+            }
+            if (match === 'n') {
+                return `${tokens.n}`;
             }
             return pad(tokens[match] as number);
         });
@@ -102,6 +106,19 @@ export default class Helper {
 
     now(): number {
         return Math.floor(Date.now() / 1000);
+    }
+
+    // get ISO week number for a given date
+    private getWeekNumber(date: Date): number {
+        const target = new Date(date.valueOf());
+        const dayNumber = (date.getUTCDay() + 6) % 7;
+        target.setUTCDate(target.getUTCDate() - dayNumber + 3);
+        const firstThursday = target.valueOf();
+        target.setUTCMonth(0, 1);
+        if (target.getUTCDay() !== 4) {
+            target.setUTCMonth(0, 1 + ((4 - target.getUTCDay()) + 7) % 7);
+        }
+        return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
     }
 
 	// get all available templates 
